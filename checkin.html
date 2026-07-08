@@ -1,0 +1,623 @@
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#111417;
+    --paper:#F5F3EF;
+    --amber:#9B6DFF;
+    --amber-dim:#5b3f96;
+    --go:#2FA86B;
+    --stop:#D64545;
+    --used:#9B6DFF;
+    --line:#2a2f34;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk',sans-serif;
+    letter-spacing:-0.01em;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    font-size:11px;
+    color:var(--amber);
+  }
+
+  /* ---------- Admin shell ---------- */
+  .admin{
+    max-width:720px;
+    margin:0 auto;
+    padding:40px 20px 80px;
+    width:100%;
+  }
+  .admin header{
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px;
+    margin-bottom:28px;
+  }
+  .admin h1{
+    font-size:26px;
+    font-weight:700;
+    margin:6px 0 4px;
+  }
+  .admin p.sub{
+    color:#9aa1a8;
+    font-size:13px;
+    margin:0;
+    line-height:1.5;
+  }
+  .card{
+    background:#171b1f;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:22px;
+    margin-bottom:20px;
+  }
+  .card h2{
+    font-size:15px;
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h2 .n{
+    color:var(--ink);
+    background:var(--amber);
+    width:20px;height:20px;
+    border-radius:5px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:600;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  textarea{
+    width:100%;
+    min-height:140px;
+    background:#0d0f11;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:14px;
+    resize:vertical;
+    line-height:1.6;
+  }
+  textarea:focus{outline:1px solid var(--amber);}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  button{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:13px;
+    border-radius:7px;
+    border:1px solid transparent;
+    padding:10px 16px;
+    cursor:pointer;
+    transition:transform .08s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button.primary{background:var(--amber);color:var(--ink);}
+  button.primary:hover{opacity:0.9;}
+  button.ghost{background:transparent;color:var(--paper);border:1px solid var(--line);}
+  button.ghost:hover{border-color:var(--amber);}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  .hint{font-size:12px;color:#767c83;margin-top:8px;line-height:1.5;}
+  .hint code{color:var(--amber);background:#0d0f11;padding:1px 5px;border-radius:4px;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:4px;}
+  .stat{
+    background:#0d0f11;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 12px;
+    text-align:center;
+  }
+  .stat .val{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;}
+  .stat .lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#8a9198;margin-top:2px;}
+  .stat.go .val{color:var(--go);}
+  .stat.pending .val{color:#8a9198;}
+
+  .roster{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    max-height:480px;
+    overflow-y:auto;
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .g-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    background:#0d0f11;
+  }
+  .g-item:last-child{border-bottom:none;}
+  .g-name{font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:14px;}
+  .g-status{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;padding:3px 8px;border-radius:20px;}
+  .g-status.pending{background:#242a2f;color:#9aa1a8;}
+  .g-status.done{background:rgba(47,168,107,0.15);color:var(--go);}
+  .g-actions{display:flex;gap:6px;}
+  .g-actions button{padding:6px 10px;font-size:11px;}
+
+  .qr-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    gap:14px;
+  }
+  .qr-cell{
+    background:#0d0f11;
+    border:1px dashed var(--line);
+    border-radius:8px;
+    padding:12px;
+    text-align:center;
+  }
+  .qr-cell canvas,.qr-cell img{width:100%;height:auto;border-radius:4px;background:#fff;padding:6px;}
+  .qr-cell .name{font-size:12px;margin-top:8px;font-family:'Space Grotesk',sans-serif;font-weight:600;}
+  .qr-cell .tok{font-size:9px;color:#767c83;margin-top:2px;word-break:break-all;}
+  .qr-cell .qr-btn-row{display:flex;gap:6px;margin-top:10px;}
+  .qr-cell .copy-btn{
+    flex:1;
+    min-width:0;
+    background:transparent;
+    color:var(--paper);
+    border:1px solid var(--line);
+    font-size:10.5px;
+    padding:6px 6px;
+  }
+  .qr-cell .copy-btn:hover{border-color:var(--amber);}
+  .qr-cell .copy-btn.copied{border-color:var(--go);color:var(--go);}
+
+  .error-box{
+    border:1px solid var(--stop);
+    background:rgba(214,69,69,0.08);
+    color:#ffb3b3;
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:13px;
+    margin-top:10px;
+  }
+  .spinner{
+    width:16px;height:16px;
+    border:2px solid var(--line);
+    border-top-color:var(--amber);
+    border-radius:50%;
+    display:inline-block;
+    animation:spin .7s linear infinite;
+    vertical-align:middle;
+    margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- Scan result (fullscreen) ---------- */
+  .scan{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:32px 24px;
+    min-height:100vh;
+    transition:background .25s ease;
+  }
+  .scan.go{background:var(--go);}
+  .scan.stop{background:var(--stop);}
+  .scan.used{background:var(--used);}
+  .scan.loading{background:var(--ink);}
+  .scan .icon{font-size:72px;line-height:1;margin-bottom:18px;}
+  .scan .headline{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:38px;
+    color:#0d0f11;
+    margin:0 0 6px;
+  }
+  .scan.loading .headline{color:var(--paper);}
+  .scan .guest{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:22px;
+    color:#0d0f11;
+    margin:10px 0 4px;
+  }
+  .scan .meta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:rgba(13,15,17,0.7);
+    margin-top:2px;
+  }
+  .scan.loading .meta,.scan.loading p{color:#9aa1a8;}
+  .ticket-edge{
+    border-top:2px dashed rgba(13,15,17,0.35);
+    width:200px;
+    margin:22px auto;
+  }
+  .scan.loading .ticket-edge{border-top-color:var(--line);}
+  .back-link{
+    margin-top:26px;
+    font-size:12px;
+    color:rgba(13,15,17,0.6);
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;
+    border:none;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .scan.loading .back-link{color:#767c83;}
+
+  @media print{
+    .qr-cell .copy-btn{display:none;}
+  }
+</style>
+
+<div id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+  // Local-testing shim: the real hosting platform injects window.storage.
+  // On plain localhost (file://, `python -m http.server`, etc.) it won't
+  // exist, so fall back to localStorage-backed storage for dev/testing only.
+  if (!window.storage) {
+    console.warn('[checkin] window.storage not found — using a localStorage-based shim for local testing. Data will not persist to the real hosting platform.');
+    const SHIM_PREFIX = 'checkin_shim:';
+    window.storage = {
+      async get(key){
+        try {
+          const raw = localStorage.getItem(SHIM_PREFIX + key);
+          return raw === null ? null : { value: raw };
+        } catch(e){ return null; }
+      },
+      async set(key, value){
+        try {
+          localStorage.setItem(SHIM_PREFIX + key, value);
+          return true;
+        } catch(e){ return false; }
+      }
+    };
+  }
+
+  const app = document.getElementById('app');
+  const params = new URLSearchParams(window.location.search);
+  const guestId = params.get('id');
+
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ================= CHECK-IN (SCAN RESULT) VIEW =================
+  if (guestId) {
+    renderScan('loading', 'Looking up guest…', '', '');
+
+    (async function(){
+      try {
+        const res = await window.storage.get('guest:' + guestId, true);
+        if (!res || !res.value) {
+          renderScan('stop', 'NOT REGISTERED', '', 'No guest found for this code. Direct them to the registration desk.');
+          return;
+        }
+        let guest;
+        try { guest = JSON.parse(res.value); } catch(e){ guest = null; }
+        if (!guest) {
+          renderScan('stop', 'INVALID RECORD', '', 'Invalid QR Code. Please scan again or check with the event organizer.');
+          return;
+        }
+        if (guest.checkedIn) {
+          const when = guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+          renderScan('used', 'ALREADY CHECKED IN', guest.name, when ? ('First scanned at ' + when) : 'This guest has already been checked in.');
+          return;
+        }
+        // Not yet checked in -> check them in now
+        guest.checkedIn = true;
+        guest.checkedInAt = Date.now();
+        const writeResult = await window.storage.set('guest:' + guestId, JSON.stringify(guest), true);
+        if (!writeResult) {
+          renderScan('stop', 'ERROR', guest.name || '', 'Could not save check-in. Try scanning again.');
+          return;
+        }
+        renderScan('go', 'CHECKED IN', guest.name, 'Welcome — let them through.');
+      } catch (err) {
+        console.error(err);
+        renderScan('stop', 'CONNECTION ERROR', '', 'Could not reach guest list. Check connection and rescan.');
+      }
+    })();
+
+    function renderScan(state, headline, guestName, meta){
+      const icon = state === 'go' ? '✓' : state === 'used' ? '↻' : state === 'stop' ? '✕' : '';
+      app.innerHTML = `
+        <div class="scan ${state}">
+          ${state==='loading' ? '<span class="spinner"></span>' : `<div class="icon">${icon}</div>`}
+          <h1 class="headline">${escapeHtml(headline)}</h1>
+          ${guestName ? `<div class="guest">${escapeHtml(guestName)}</div>` : ''}
+          <div class="ticket-edge"></div>
+          <p class="meta">${escapeHtml(meta)}</p>
+          <button class="back-link" onclick="window.location.href = window.location.pathname">Open admin view</button>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  // ================= ADMIN / IMPORT VIEW =================
+  const baseUrl = window.location.origin + window.location.pathname;
+
+  function uid(){
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g,'').slice(0,12);
+    return Math.random().toString(36).slice(2, 14);
+  }
+
+  async function loadRoster(){
+    try {
+      const r = await window.storage.get('roster', true);
+      return r && r.value ? JSON.parse(r.value) : [];
+    } catch(e){ return []; }
+  }
+
+  async function saveRoster(list){
+    await window.storage.set('roster', JSON.stringify(list), true);
+  }
+
+  function parseInput(text){
+    // Accept "Name" per line, or "Name,email" — we only need the name for display.
+    return text.split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(l => l.split(',')[0].trim());
+  }
+
+  async function renderAdmin(){
+    const roster = await loadRoster();
+    const checkedInCount = roster.filter(g => g.checkedIn).length;
+
+    app.innerHTML = `
+      <div class="admin">
+        <header>
+          <div class="eyebrow">Event Check-in · Admin Console</div>
+          <h1>Guest Check-in</h1>
+          <p class="sub">Import your roster once, send each guest their QR code, then hand this same link to your door staff. Scanning a guest's code opens a full-screen pass / fail result — no login needed.</p>
+        </header>
+
+        <div class="stat-grid">
+          <div class="stat"><div class="val">${roster.length}</div><div class="lbl">Imported</div></div>
+          <div class="stat go"><div class="val">${checkedInCount}</div><div class="lbl">Checked in</div></div>
+          <div class="stat pending"><div class="val">${roster.length - checkedInCount}</div><div class="lbl">Not yet arrived</div></div>
+        </div>
+
+        <div class="card">
+          <h2><span class="n">1</span> Import guest list</h2>
+          <p class="hint" style="margin-top:0;">Paste one guest name per line (or "Name, email" — only the name is used). Importing again <b>adds to</b> the existing roster; it won't erase guests already imported.</p>
+          <textarea id="pasteArea" placeholder="Jane Doe&#10;John Smith&#10;Nailah Desclefs"></textarea>
+          <div class="row">
+            <button class="primary" id="importBtn">Import & generate QR codes</button>
+            <span id="importStatus" class="hint"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="n">2</span> Guest roster ${roster.length ? `<span style="color:#767c83;font-weight:400;font-size:12px;">(${roster.length})</span>` : ''}</h2>
+          ${roster.length === 0 ? '<p class="hint">No guests imported yet.</p>' : `
+            <div class="roster">
+              ${roster.map(g => `
+                <div class="g-item">
+                  <div>
+                    <div class="g-name">${escapeHtml(g.name)}</div>
+                  </div>
+                  <div class="g-actions">
+                    <span class="g-status ${g.checkedIn ? 'done' : 'pending'}">${g.checkedIn ? 'Checked in' : 'Not arrived'}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+          <div class="row">
+            <button class="ghost" id="refreshBtn">Refresh status</button>
+            ${roster.length ? '<button class="ghost" id="resetBtn">Reset all check-ins</button>' : ''}
+          </div>
+        </div>
+
+        ${roster.length ? `
+        <div class="card">
+          <h2><span class="n">3</span> QR codes to send guests</h2>
+          <p class="hint" style="margin-top:0;">Each guest's code links to <code>${escapeHtml(baseUrl)}?id=...</code>. Screenshot, download, or print these to send out. When a guest shows this at the door, staff scan it with their phone's normal camera app — no app install required.</p>
+          <div class="row"><button class="primary" id="printBtn">Print all codes</button></div>
+          <div class="qr-grid" id="qrGrid" style="margin-top:16px;"></div>
+        </div>
+        ` : ''}
+
+        <div style="text-align:center;margin-top:36px;padding-top:20px;border-top:1px solid var(--line);">
+          <span class="hint" style="font-size:11px;letter-spacing:0.04em;">Created by MCaldieraro</span>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('importBtn').onclick = async () => {
+      const names = parseInput(document.getElementById('pasteArea').value);
+      const statusEl = document.getElementById('importStatus');
+      if (names.length === 0) { statusEl.textContent = 'Paste at least one name first.'; return; }
+      statusEl.innerHTML = '<span class="spinner"></span>Importing ' + names.length + ' guests…';
+      const existing = await loadRoster();
+      const additions = [];
+      for (const name of names) {
+        const token = uid();
+        const guestRecord = { name, checkedIn:false, checkedInAt:null };
+        try {
+          await window.storage.set('guest:' + token, JSON.stringify(guestRecord), true);
+          additions.push({ name, token, checkedIn:false });
+        } catch(e){ console.error('Failed to save guest', name, e); }
+      }
+      const updated = existing.concat(additions);
+      await saveRoster(updated);
+      statusEl.textContent = 'Imported ' + additions.length + ' guests.';
+      document.getElementById('pasteArea').value = '';
+      renderAdmin();
+    };
+
+    document.getElementById('refreshBtn').onclick = async () => {
+      // Re-check every guest's live status (in case staff have been scanning)
+      const list = await loadRoster();
+      const refreshed = [];
+      await Promise.all(list.map(async (g) => {
+        try {
+          const r = await window.storage.get('guest:' + g.token, true);
+          const rec = r && r.value ? JSON.parse(r.value) : g;
+          refreshed.push({ name: g.name, token: g.token, checkedIn: !!rec.checkedIn, checkedInAt: rec.checkedInAt });
+        } catch(e) {
+          refreshed.push(g);
+        }
+      }));
+      // preserve original order
+      const byToken = Object.fromEntries(refreshed.map(g => [g.token, g]));
+      const ordered = list.map(g => byToken[g.token] || g);
+      await saveRoster(ordered);
+      renderAdmin();
+    };
+
+    const resetBtnEl = document.getElementById('resetBtn');
+    if (resetBtnEl) {
+      resetBtnEl.onclick = async () => {
+        if (!confirm('Reset check-in status for all ' + roster.length + ' guests? This does not remove anyone from the roster.')) return;
+        const list = await loadRoster();
+        await Promise.all(list.map(g =>
+          window.storage.set('guest:' + g.token, JSON.stringify({ name:g.name, checkedIn:false, checkedInAt:null }), true)
+        ));
+        const cleared = list.map(g => ({ name:g.name, token:g.token, checkedIn:false }));
+        await saveRoster(cleared);
+        renderAdmin();
+      };
+    }
+
+    const printBtnEl = document.getElementById('printBtn');
+    if (printBtnEl) printBtnEl.onclick = () => window.print();
+
+    // Render QR codes after DOM is in place
+    const qrGrid = document.getElementById('qrGrid');
+    if (qrGrid) {
+      // Draws the QR + guest name into one flat PNG so copying/downloading
+      // sends a single self-contained image, not just the bare QR pattern.
+      function buildCompositeCanvas(sourceCanvas, name){
+        const padding = 16, qrSize = sourceCanvas.width, nameBandHeight = 34;
+        const out = document.createElement('canvas');
+        out.width = qrSize + padding * 2;
+        out.height = qrSize + padding * 2 + nameBandHeight;
+        const ctx = out.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, out.width, out.height);
+        ctx.drawImage(sourceCanvas, padding, padding, qrSize, qrSize);
+        ctx.fillStyle = '#0d0f11';
+        ctx.font = "600 16px 'Space Grotesk', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(name, out.width / 2, padding + qrSize + nameBandHeight / 2);
+        return out;
+      }
+
+      function flashBtn(btn, label, isError){
+        const original = btn.dataset.label;
+        btn.textContent = label;
+        btn.classList.toggle('copied', !isError);
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1500);
+      }
+
+      roster.forEach(g => {
+        const link = baseUrl + '?id=' + g.token;
+        const cell = document.createElement('div');
+        cell.className = 'qr-cell';
+        const canvasHolder = document.createElement('div');
+        cell.appendChild(canvasHolder);
+        const nameEl = document.createElement('div');
+        nameEl.className = 'name';
+        nameEl.textContent = g.name;
+        cell.appendChild(nameEl);
+
+        const btnRow = document.createElement('div');
+        btnRow.className = 'qr-btn-row';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'ghost copy-btn';
+        copyBtn.type = 'button';
+        copyBtn.dataset.label = 'Copy image';
+        copyBtn.textContent = 'Copy image';
+        btnRow.appendChild(copyBtn);
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'ghost copy-btn';
+        downloadBtn.type = 'button';
+        downloadBtn.dataset.label = 'Download PNG';
+        downloadBtn.textContent = 'Download PNG';
+        btnRow.appendChild(downloadBtn);
+
+        cell.appendChild(btnRow);
+        qrGrid.appendChild(cell);
+
+        try {
+          new QRCode(canvasHolder, {
+            text: link,
+            width: 140,
+            height: 140,
+            colorDark: '#0d0f11',
+            colorLight: '#ffffff'
+          });
+        } catch(e){ canvasHolder.textContent = '(QR failed to render)'; return; }
+
+        const sourceCanvas = canvasHolder.querySelector('canvas');
+        if (!sourceCanvas) {
+          copyBtn.disabled = true;
+          downloadBtn.disabled = true;
+          return;
+        }
+
+        copyBtn.onclick = async () => {
+          try {
+            const composite = buildCompositeCanvas(sourceCanvas, g.name);
+            const blob = await new Promise(resolve => composite.toBlob(resolve, 'image/png'));
+            if (!blob) throw new Error('toBlob failed');
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            flashBtn(copyBtn, 'Copied!', false);
+          } catch(e) {
+            console.error('Copy image failed', e);
+            flashBtn(copyBtn, 'Copy failed', true);
+          }
+        };
+
+        downloadBtn.onclick = () => {
+          try {
+            const composite = buildCompositeCanvas(sourceCanvas, g.name);
+            const a = document.createElement('a');
+            a.href = composite.toDataURL('image/png');
+            a.download = (g.name || 'guest').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '_') + '_qr.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } catch(e) {
+            console.error('Download failed', e);
+            flashBtn(downloadBtn, 'Failed', true);
+          }
+        };
+      });
+    }
+  }
+
+  renderAdmin();
+})();
+</script>
