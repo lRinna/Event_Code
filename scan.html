@@ -36,7 +36,7 @@
   .scan.go{background:var(--go);}
   .scan.stop{background:var(--stop);}
   .scan.used{background:var(--used);}
-  .scan.loading{background:var(--ink);}
+  .scan.loading{background:#5b3f96;}
   .scan .icon{font-size:72px;line-height:1;margin-bottom:18px;}
   .scan .headline{
     font-family:'Space Grotesk',sans-serif;
@@ -45,7 +45,7 @@
     color:#0d0f11;
     margin:0 0 6px;
   }
-  .scan.loading .headline{color:var(--paper);}
+  .scan.loading .headline{color:#ffffff;}
   .scan .guest{
     font-family:'Space Grotesk',sans-serif;
     font-weight:600;
@@ -59,24 +59,13 @@
     color:rgba(13,15,17,0.7);
     margin-top:2px;
   }
-  .scan.loading .meta,.scan.loading p{color:#9aa1a8;}
+  .scan.loading .meta,.scan.loading p{color:#ffffff;}
   .ticket-edge{
     border-top:2px dashed rgba(13,15,17,0.35);
     width:200px;
     margin:22px auto;
   }
   .scan.loading .ticket-edge{border-top-color:var(--line);}
-  .spinner{
-    width:16px;height:16px;
-    border:2px solid var(--line);
-    border-top-color:var(--paper);
-    border-radius:50%;
-    display:inline-block;
-    animation:spin .7s linear infinite;
-    vertical-align:middle;
-    margin-right:8px;
-  }
-  @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 
 <div id="app"></div>
@@ -98,7 +87,7 @@
     const icon = state === 'go' ? '✓' : state === 'used' ? '↻' : state === 'stop' ? '✕' : '';
     app.innerHTML = `
       <div class="scan ${state}">
-        ${state==='loading' ? '<span class="spinner"></span>' : `<div class="icon">${icon}</div>`}
+        ${state==='loading' ? '' : `<div class="icon">${icon}</div>`}
         <h1 class="headline">${escapeHtml(headline)}</h1>
         ${guestName ? `<div class="guest">${escapeHtml(guestName)}</div>` : ''}
         <div class="ticket-edge"></div>
