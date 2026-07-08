@@ -404,6 +404,64 @@
     return;
   }
 
+  // ================= ADMIN ACCESS CONTROL =================
+  // Door staff only ever open guest QR links (which carry ?id=...), handled
+  // above. The admin console lives behind a secret ?admin= token so that
+  // clearing/typing a bare URL never reveals it — plus a password prompt in
+  // case the secret link itself ever leaks.
+  const ADMIN_KEY = 'dgv4qxppklwrm7';
+  const ADMIN_PASSWORD = 'Houston#1';
+  const ADMIN_SESSION_KEY = 'checkin_admin_authed';
+
+  if (params.get('admin') !== ADMIN_KEY) {
+    app.innerHTML = `
+      <div class="scan">
+        <div class="icon">&#128247;</div>
+        <h1 class="headline">Ready to scan</h1>
+        <div class="ticket-edge"></div>
+        <p class="meta">Point your camera at a guest's QR code to check them in.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (sessionStorage.getItem(ADMIN_SESSION_KEY) !== '1') {
+    renderAdminLogin();
+    return;
+  }
+
+  function renderAdminLogin(){
+    app.innerHTML = `
+      <div class="admin">
+        <header>
+          <div class="eyebrow">Event Check-in · Admin Console</div>
+          <h1>Enter admin password</h1>
+        </header>
+        <div class="card">
+          <input type="password" id="adminPassword" class="search-input" placeholder="Password" autofocus>
+          <div class="row" style="margin-top:10px;">
+            <button class="primary" id="adminLoginBtn">Unlock</button>
+            <span id="adminLoginError" class="hint" style="color:var(--stop);"></span>
+          </div>
+        </div>
+      </div>
+    `;
+    const pwEl = document.getElementById('adminPassword');
+    const errEl = document.getElementById('adminLoginError');
+    const attempt = () => {
+      if (pwEl.value === ADMIN_PASSWORD) {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+        startAdminSession();
+      } else {
+        errEl.textContent = 'Incorrect password.';
+        pwEl.value = '';
+        pwEl.focus();
+      }
+    };
+    document.getElementById('adminLoginBtn').onclick = attempt;
+    pwEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') attempt(); });
+  }
+
   // ================= ADMIN / IMPORT VIEW =================
   const baseUrl = window.location.origin + window.location.pathname;
 
@@ -461,7 +519,7 @@
         <header>
           <div class="eyebrow">Event Check-in · Admin Console</div>
           <h1>Guest Check-in</h1>
-          <p class="sub">Import your roster once, send each guest their QR code, then hand this same link to your door staff. Scanning a guest's code opens a full-screen pass / fail result.  No login needed.</p>
+          <p class="sub">Import your roster once and send each guest their QR code. Door staff never need this admin link — they just scan each guest's code with a phone camera, which opens a full-screen pass / fail result on its own. Keep this admin link and password to yourself.</p>
         </header>
 
         <div class="stat-grid">
@@ -791,38 +849,42 @@
     }
   }
 
-  renderAdmin();
+  function startAdminSession(){
+    renderAdmin();
 
-  // Keep check-in status current without a manual click: scans from other
-  // devices only update the individual guest record, not this page's view,
-  // so re-sync whenever this tab regains focus, plus a light periodic poll
-  // while it stays open. In-progress typing in the paste/search boxes is
-  // preserved across the refresh so staff don't lose their place.
-  let autoRefreshInFlight = false;
-  async function autoRefresh(){
-    if (autoRefreshInFlight) return;
-    autoRefreshInFlight = true;
-    try {
-      const pasteEl = document.getElementById('pasteArea');
-      const searchEl = document.getElementById('rosterSearch');
-      const pasteVal = pasteEl ? pasteEl.value : '';
-      const searchVal = searchEl ? searchEl.value : '';
-      await syncCheckedInStatuses();
-      await renderAdmin();
-      const newPasteEl = document.getElementById('pasteArea');
-      const newSearchEl = document.getElementById('rosterSearch');
-      if (newPasteEl && pasteVal) newPasteEl.value = pasteVal;
-      if (newSearchEl && searchVal) {
-        newSearchEl.value = searchVal;
-        newSearchEl.dispatchEvent(new Event('input'));
+    // Keep check-in status current without a manual click: scans from other
+    // devices only update the individual guest record, not this page's view,
+    // so re-sync whenever this tab regains focus, plus a light periodic poll
+    // while it stays open. In-progress typing in the paste/search boxes is
+    // preserved across the refresh so staff don't lose their place.
+    let autoRefreshInFlight = false;
+    async function autoRefresh(){
+      if (autoRefreshInFlight) return;
+      autoRefreshInFlight = true;
+      try {
+        const pasteEl = document.getElementById('pasteArea');
+        const searchEl = document.getElementById('rosterSearch');
+        const pasteVal = pasteEl ? pasteEl.value : '';
+        const searchVal = searchEl ? searchEl.value : '';
+        await syncCheckedInStatuses();
+        await renderAdmin();
+        const newPasteEl = document.getElementById('pasteArea');
+        const newSearchEl = document.getElementById('rosterSearch');
+        if (newPasteEl && pasteVal) newPasteEl.value = pasteVal;
+        if (newSearchEl && searchVal) {
+          newSearchEl.value = searchVal;
+          newSearchEl.dispatchEvent(new Event('input'));
+        }
+      } finally {
+        autoRefreshInFlight = false;
       }
-    } finally {
-      autoRefreshInFlight = false;
     }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') autoRefresh();
+    });
+    setInterval(autoRefresh, 20000);
   }
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') autoRefresh();
-  });
-  setInterval(autoRefresh, 20000);
+
+  startAdminSession();
 })();
 </script>
