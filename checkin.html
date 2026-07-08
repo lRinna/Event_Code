@@ -151,6 +151,7 @@
   }
   .g-item:last-child{border-bottom:none;}
   .g-name{font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:14px;}
+  .g-email{font-size:11px;color:#8a9198;margin-top:2px;}
   .g-status{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;padding:3px 8px;border-radius:20px;}
   .g-status.pending{background:#242a2f;color:#9aa1a8;}
   .g-status.done{background:rgba(47,168,107,0.15);color:var(--go);}
@@ -171,6 +172,7 @@
   }
   .qr-cell canvas,.qr-cell img{width:100%;height:auto;border-radius:4px;background:#fff;padding:6px;}
   .qr-cell .name{font-size:12px;margin-top:8px;font-family:'Space Grotesk',sans-serif;font-weight:600;}
+  .qr-cell .email{font-size:10px;color:#8a9198;margin-top:2px;word-break:break-all;}
   .qr-cell .tok{font-size:9px;color:#767c83;margin-top:2px;word-break:break-all;}
   .qr-cell .qr-btn-row{display:flex;gap:6px;margin-top:10px;}
   .qr-cell .copy-btn{
@@ -376,11 +378,14 @@
   }
 
   function parseInput(text){
-    // Accept "Name" per line, or "Name,email" — we only need the name for display.
+    // Accept "Name" per line, or "Name, email".
     return text.split('\n')
       .map(l => l.trim())
       .filter(Boolean)
-      .map(l => l.split(',')[0].trim());
+      .map(l => {
+        const parts = l.split(',');
+        return { name: parts[0].trim(), email: (parts[1] || '').trim() };
+      });
   }
 
   async function renderAdmin(){
@@ -392,7 +397,7 @@
         <header>
           <div class="eyebrow">Event Check-in · Admin Console</div>
           <h1>Guest Check-in</h1>
-          <p class="sub">Import your roster once, send each guest their QR code, then hand this same link to your door staff. Scanning a guest's code opens a full-screen pass / fail result — no login needed.</p>
+          <p class="sub">Import your roster once, send each guest their QR code, then hand this same link to your door staff. Scanning a guest's code opens a full-screen pass / fail result.  No login needed.</p>
         </header>
 
         <div class="stat-grid">
@@ -403,10 +408,11 @@
 
         <div class="card">
           <h2><span class="n">1</span> Import guest list</h2>
-          <p class="hint" style="margin-top:0;">Paste one guest name per line (or "Name, email" — only the name is used). Importing again <b>adds to</b> the existing roster; it won't erase guests already imported.</p>
+          <p class="hint" style="margin-top:0;">Paste one guest name per line, or "Name, email" if you'd like an email attached. Importing again <b>adds to</b> the existing roster and won't erase guests already imported. If a name matches someone already on the roster, you'll be asked to add an email for both so they can be told apart. To remove guests instead, paste their name and/or email and use "Remove guest(s)". Their existing QR code will stop working.</p>
           <textarea id="pasteArea" placeholder="Jane Doe&#10;John Smith&#10;Nailah Desclefs"></textarea>
           <div class="row">
             <button class="primary" id="importBtn">Import & generate QR codes</button>
+            <button class="ghost" id="removeBtn">Remove guest(s)</button>
             <span id="importStatus" class="hint"></span>
           </div>
         </div>
@@ -415,16 +421,19 @@
           <h2><span class="n">2</span> Guest roster ${roster.length ? `<span style="color:#767c83;font-weight:400;font-size:12px;">(${roster.length})</span>` : ''}</h2>
           ${roster.length === 0 ? '<p class="hint">No guests imported yet.</p>' : `
             <div class="roster">
-              ${roster.map(g => `
+              ${roster.map(g => {
+                const isDup = roster.filter(x => x.name.trim().toLowerCase() === g.name.trim().toLowerCase()).length > 1;
+                return `
                 <div class="g-item">
                   <div>
                     <div class="g-name">${escapeHtml(g.name)}</div>
+                    ${isDup ? `<div class="g-email">${g.email ? escapeHtml(g.email) : '<span style="color:var(--stop)">No email on file</span>'}</div>` : ''}
                   </div>
                   <div class="g-actions">
                     <span class="g-status ${g.checkedIn ? 'done' : 'pending'}">${g.checkedIn ? 'Checked in' : 'Not arrived'}</span>
                   </div>
                 </div>
-              `).join('')}
+              `;}).join('')}
             </div>
           `}
           <div class="row">
@@ -436,7 +445,7 @@
         ${roster.length ? `
         <div class="card">
           <h2><span class="n">3</span> QR codes to send guests</h2>
-          <p class="hint" style="margin-top:0;">Each guest's code links to <code>${escapeHtml(baseUrl)}?id=...</code>. Screenshot, download, or print these to send out. When a guest shows this at the door, staff scan it with their phone's normal camera app — no app install required.</p>
+          <p class="hint" style="margin-top:0;">Each guest's code links to <code>${escapeHtml(baseUrl)}?id=...</code>. Copy, download, or print these to send out. When a guest shows this at the door, staff scan it with their phone's camera app. No app install is required.</p>
           <div class="row"><button class="primary" id="printBtn">Print all codes</button></div>
           <div class="qr-grid" id="qrGrid" style="margin-top:16px;"></div>
         </div>
@@ -449,23 +458,74 @@
     `;
 
     document.getElementById('importBtn').onclick = async () => {
-      const names = parseInput(document.getElementById('pasteArea').value);
+      const entries = parseInput(document.getElementById('pasteArea').value);
       const statusEl = document.getElementById('importStatus');
-      if (names.length === 0) { statusEl.textContent = 'Paste at least one name first.'; return; }
-      statusEl.innerHTML = '<span class="spinner"></span>Importing ' + names.length + ' guests…';
+      if (entries.length === 0) { statusEl.textContent = 'Paste at least one name first.'; return; }
+
       const existing = await loadRoster();
+      const existingNameCounts = {};
+      existing.forEach(g => {
+        const key = g.name.trim().toLowerCase();
+        existingNameCounts[key] = (existingNameCounts[key] || 0) + 1;
+      });
+      const batchNameCounts = {};
+      entries.forEach(e => {
+        const key = e.name.trim().toLowerCase();
+        batchNameCounts[key] = (batchNameCounts[key] || 0) + 1;
+      });
+      const missingEmail = entries.filter(e => {
+        const key = e.name.trim().toLowerCase();
+        const collides = !!existingNameCounts[key] || batchNameCounts[key] > 1;
+        return collides && !e.email;
+      });
+      if (missingEmail.length > 0) {
+        statusEl.innerHTML = '<span style="color:var(--stop)">Name already on the roster: '
+          + missingEmail.map(e => escapeHtml(e.name)).join(', ')
+          + '. Add "Name, email" for ' + (missingEmail.length === 1 ? 'this guest' : 'these guests') + ' so they can be told apart, then re-import.</span>';
+        return;
+      }
+
+      statusEl.innerHTML = '<span class="spinner"></span>Importing ' + entries.length + ' guests…';
       const additions = [];
-      for (const name of names) {
+      for (const { name, email } of entries) {
         const token = uid();
-        const guestRecord = { name, checkedIn:false, checkedInAt:null };
+        const guestRecord = { name, email, checkedIn:false, checkedInAt:null };
         try {
           await window.storage.set('guest:' + token, JSON.stringify(guestRecord), true);
-          additions.push({ name, token, checkedIn:false });
+          additions.push({ name, email, token, checkedIn:false });
         } catch(e){ console.error('Failed to save guest', name, e); }
       }
       const updated = existing.concat(additions);
       await saveRoster(updated);
       statusEl.textContent = 'Imported ' + additions.length + ' guests.';
+      document.getElementById('pasteArea').value = '';
+      renderAdmin();
+    };
+
+    document.getElementById('removeBtn').onclick = async () => {
+      const entries = parseInput(document.getElementById('pasteArea').value);
+      const statusEl = document.getElementById('importStatus');
+      if (entries.length === 0) { statusEl.textContent = 'Paste at least one name or email first.'; return; }
+
+      // Each pasted line may give a name, an email, or "Name, email" — match
+      // a guest for removal if either identifier hits, so removal works
+      // whether you paste names or emails for telling duplicates apart.
+      const identifiers = new Set();
+      entries.forEach(e => {
+        if (e.name) identifiers.add(e.name.toLowerCase());
+        if (e.email) identifiers.add(e.email.toLowerCase());
+      });
+      const matches = g => identifiers.has(g.name.trim().toLowerCase()) || (!!g.email && identifiers.has(g.email.trim().toLowerCase()));
+
+      const existing = await loadRoster();
+      const toRemove = existing.filter(matches);
+      if (toRemove.length === 0) { statusEl.textContent = 'No matching guests found in the roster.'; return; }
+      if (!confirm('Remove ' + toRemove.length + ' guest' + (toRemove.length === 1 ? '' : 's') + ' from the roster? Their existing QR code will stop working.')) return;
+      statusEl.innerHTML = '<span class="spinner"></span>Removing ' + toRemove.length + ' guests…';
+      const remaining = existing.filter(g => !matches(g));
+      await Promise.all(toRemove.map(g => window.storage.set('guest:' + g.token, '', true)));
+      await saveRoster(remaining);
+      statusEl.textContent = 'Removed ' + toRemove.length + ' guest' + (toRemove.length === 1 ? '' : 's') + '.';
       document.getElementById('pasteArea').value = '';
       renderAdmin();
     };
@@ -478,7 +538,7 @@
         try {
           const r = await window.storage.get('guest:' + g.token, true);
           const rec = r && r.value ? JSON.parse(r.value) : g;
-          refreshed.push({ name: g.name, token: g.token, checkedIn: !!rec.checkedIn, checkedInAt: rec.checkedInAt });
+          refreshed.push({ name: g.name, email: g.email, token: g.token, checkedIn: !!rec.checkedIn, checkedInAt: rec.checkedInAt });
         } catch(e) {
           refreshed.push(g);
         }
@@ -496,9 +556,9 @@
         if (!confirm('Reset check-in status for all ' + roster.length + ' guests? This does not remove anyone from the roster.')) return;
         const list = await loadRoster();
         await Promise.all(list.map(g =>
-          window.storage.set('guest:' + g.token, JSON.stringify({ name:g.name, checkedIn:false, checkedInAt:null }), true)
+          window.storage.set('guest:' + g.token, JSON.stringify({ name:g.name, email:g.email, checkedIn:false, checkedInAt:null }), true)
         ));
-        const cleared = list.map(g => ({ name:g.name, token:g.token, checkedIn:false }));
+        const cleared = list.map(g => ({ name:g.name, email:g.email, token:g.token, checkedIn:false }));
         await saveRoster(cleared);
         renderAdmin();
       };
@@ -510,13 +570,15 @@
     // Render QR codes after DOM is in place
     const qrGrid = document.getElementById('qrGrid');
     if (qrGrid) {
-      // Draws the QR + guest name into one flat PNG so copying/downloading
-      // sends a single self-contained image, not just the bare QR pattern.
-      function buildCompositeCanvas(sourceCanvas, name){
+      // Draws the QR + guest name (and email, when a name collides with
+      // another guest) into one flat PNG so copying/downloading sends a
+      // single self-contained image, not just the bare QR pattern.
+      function buildCompositeCanvas(sourceCanvas, name, email){
         const padding = 16, qrSize = sourceCanvas.width, nameBandHeight = 34;
+        const emailBandHeight = email ? 20 : 0;
         const out = document.createElement('canvas');
         out.width = qrSize + padding * 2;
-        out.height = qrSize + padding * 2 + nameBandHeight;
+        out.height = qrSize + padding * 2 + nameBandHeight + emailBandHeight;
         const ctx = out.getContext('2d');
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, out.width, out.height);
@@ -526,6 +588,11 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(name, out.width / 2, padding + qrSize + nameBandHeight / 2);
+        if (email) {
+          ctx.font = "500 12px 'IBM Plex Mono', monospace";
+          ctx.fillStyle = '#5b636b';
+          ctx.fillText(email, out.width / 2, padding + qrSize + nameBandHeight + emailBandHeight / 2);
+        }
         return out;
       }
 
@@ -539,8 +606,16 @@
         }, 1500);
       }
 
+      const nameCounts = {};
+      roster.forEach(g => {
+        const key = g.name.trim().toLowerCase();
+        nameCounts[key] = (nameCounts[key] || 0) + 1;
+      });
+
       roster.forEach(g => {
         const link = baseUrl + '?id=' + g.token;
+        const isDup = nameCounts[g.name.trim().toLowerCase()] > 1;
+        const displayEmail = g.email || (isDup ? '(no email on file)' : '');
         const cell = document.createElement('div');
         cell.className = 'qr-cell';
         const canvasHolder = document.createElement('div');
@@ -549,6 +624,12 @@
         nameEl.className = 'name';
         nameEl.textContent = g.name;
         cell.appendChild(nameEl);
+        if (displayEmail) {
+          const emailEl = document.createElement('div');
+          emailEl.className = 'email';
+          emailEl.textContent = displayEmail;
+          cell.appendChild(emailEl);
+        }
 
         const btnRow = document.createElement('div');
         btnRow.className = 'qr-btn-row';
@@ -589,7 +670,7 @@
 
         copyBtn.onclick = async () => {
           try {
-            const composite = buildCompositeCanvas(sourceCanvas, g.name);
+            const composite = buildCompositeCanvas(sourceCanvas, g.name, displayEmail);
             const blob = await new Promise(resolve => composite.toBlob(resolve, 'image/png'));
             if (!blob) throw new Error('toBlob failed');
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
@@ -602,7 +683,7 @@
 
         downloadBtn.onclick = () => {
           try {
-            const composite = buildCompositeCanvas(sourceCanvas, g.name);
+            const composite = buildCompositeCanvas(sourceCanvas, g.name, displayEmail);
             const a = document.createElement('a');
             a.href = composite.toDataURL('image/png');
             a.download = (g.name || 'guest').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '_') + '_qr.png';
