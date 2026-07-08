@@ -1,0 +1,149 @@
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#111417;
+    --paper:#F5F3EF;
+    --go:#2FA86B;
+    --stop:#D64545;
+    --used:#9B6DFF;
+    --line:#2a2f34;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .scan{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:32px 24px;
+    min-height:100vh;
+    transition:background .25s ease;
+  }
+  .scan.go{background:var(--go);}
+  .scan.stop{background:var(--stop);}
+  .scan.used{background:var(--used);}
+  .scan.loading{background:var(--ink);}
+  .scan .icon{font-size:72px;line-height:1;margin-bottom:18px;}
+  .scan .headline{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:38px;
+    color:#0d0f11;
+    margin:0 0 6px;
+  }
+  .scan.loading .headline{color:var(--paper);}
+  .scan .guest{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:22px;
+    color:#0d0f11;
+    margin:10px 0 4px;
+  }
+  .scan .meta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:rgba(13,15,17,0.7);
+    margin-top:2px;
+  }
+  .scan.loading .meta,.scan.loading p{color:#9aa1a8;}
+  .ticket-edge{
+    border-top:2px dashed rgba(13,15,17,0.35);
+    width:200px;
+    margin:22px auto;
+  }
+  .scan.loading .ticket-edge{border-top-color:var(--line);}
+  .spinner{
+    width:16px;height:16px;
+    border:2px solid var(--line);
+    border-top-color:var(--paper);
+    border-radius:50%;
+    display:inline-block;
+    animation:spin .7s linear infinite;
+    vertical-align:middle;
+    margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+
+<div id="app"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="storage.js"></script>
+<script>
+(function(){
+  const app = document.getElementById('app');
+  const params = new URLSearchParams(window.location.search);
+  const guestId = params.get('id');
+
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderScan(state, headline, guestName, meta){
+    const icon = state === 'go' ? '✓' : state === 'used' ? '↻' : state === 'stop' ? '✕' : '';
+    app.innerHTML = `
+      <div class="scan ${state}">
+        ${state==='loading' ? '<span class="spinner"></span>' : `<div class="icon">${icon}</div>`}
+        <h1 class="headline">${escapeHtml(headline)}</h1>
+        ${guestName ? `<div class="guest">${escapeHtml(guestName)}</div>` : ''}
+        <div class="ticket-edge"></div>
+        <p class="meta">${escapeHtml(meta)}</p>
+      </div>
+    `;
+  }
+
+  if (!guestId) {
+    renderScan('stop', 'NO CODE', '', 'This link is missing a guest code. Ask the guest to show their original QR code.');
+    return;
+  }
+
+  renderScan('loading', 'Looking up guest…', '', '');
+
+  (async function(){
+    try {
+      const res = await window.storage.get('guest:' + guestId, true);
+      if (!res || !res.value) {
+        renderScan('stop', 'NOT REGISTERED', '', 'No guest found for this code. Direct them to the registration desk.');
+        return;
+      }
+      let guest;
+      try { guest = JSON.parse(res.value); } catch(e){ guest = null; }
+      if (!guest) {
+        renderScan('stop', 'INVALID RECORD', '', 'Invalid QR Code. Please scan again or check with the event organizer.');
+        return;
+      }
+      if (guest.checkedIn) {
+        const when = guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+        renderScan('used', 'ALREADY CHECKED IN', guest.name, when ? ('First scanned at ' + when) : 'This guest has already been checked in.');
+        return;
+      }
+      guest.checkedIn = true;
+      guest.checkedInAt = Date.now();
+      const writeResult = await window.storage.set('guest:' + guestId, JSON.stringify(guest), true);
+      if (!writeResult) {
+        renderScan('stop', 'ERROR', guest.name || '', 'Could not save check-in. Try scanning again.');
+        return;
+      }
+      renderScan('go', 'CHECKED IN', guest.name, 'Welcome — let them through.');
+    } catch (err) {
+      console.error(err);
+      renderScan('stop', 'CONNECTION ERROR', '', 'Could not reach guest list. Check connection and rescan.');
+    }
+  })();
+})();
+</script>

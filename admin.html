@@ -1,0 +1,736 @@
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#111417;
+    --paper:#F5F3EF;
+    --amber:#9B6DFF;
+    --amber-dim:#5b3f96;
+    --go:#2FA86B;
+    --stop:#D64545;
+    --used:#9B6DFF;
+    --line:#2a2f34;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk',sans-serif;
+    letter-spacing:-0.01em;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    font-size:11px;
+    color:var(--amber);
+  }
+
+  .admin{
+    max-width:720px;
+    margin:0 auto;
+    padding:40px 20px 80px;
+    width:100%;
+  }
+  .admin header{
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px;
+    margin-bottom:28px;
+  }
+  .admin h1{
+    font-size:26px;
+    font-weight:700;
+    margin:6px 0 4px;
+  }
+  .admin p.sub{
+    color:#9aa1a8;
+    font-size:13px;
+    margin:0;
+    line-height:1.5;
+  }
+  .card{
+    background:#171b1f;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:22px;
+    margin-bottom:20px;
+  }
+  .card h2{
+    font-size:15px;
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h2 .n{
+    color:var(--ink);
+    background:var(--amber);
+    width:20px;height:20px;
+    border-radius:5px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:600;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  textarea{
+    width:100%;
+    min-height:140px;
+    background:#0d0f11;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:14px;
+    resize:vertical;
+    line-height:1.6;
+  }
+  textarea:focus{outline:1px solid var(--amber);}
+  input[type="text"].search-input,input[type="password"].search-input{
+    width:100%;
+    background:#0d0f11;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:10px 14px;
+  }
+  .search-input:focus{outline:1px solid var(--amber);}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  button{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:13px;
+    border-radius:7px;
+    border:1px solid transparent;
+    padding:10px 16px;
+    cursor:pointer;
+    transition:transform .08s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button.primary{background:var(--amber);color:var(--ink);}
+  button.primary:hover{opacity:0.9;}
+  button.ghost{background:transparent;color:var(--paper);border:1px solid var(--line);}
+  button.ghost:hover{border-color:var(--amber);}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  .hint{font-size:12px;color:#767c83;margin-top:8px;line-height:1.5;}
+  .hint code{color:var(--amber);background:#0d0f11;padding:1px 5px;border-radius:4px;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:4px;}
+  .stat{
+    background:#0d0f11;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 12px;
+    text-align:center;
+  }
+  .stat .val{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;}
+  .stat .lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#8a9198;margin-top:2px;}
+  .stat.go .val{color:var(--go);}
+  .stat.pending .val{color:#8a9198;}
+
+  .roster{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    max-height:480px;
+    overflow-y:auto;
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .g-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    background:#0d0f11;
+  }
+  .g-item:last-child{border-bottom:none;}
+  .g-name{font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:14px;}
+  .g-email{font-size:11px;color:#8a9198;margin-top:2px;}
+  .g-status{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;padding:3px 8px;border-radius:20px;}
+  .g-status.pending{background:#242a2f;color:#9aa1a8;}
+  .g-status.done{background:rgba(47,168,107,0.15);color:var(--go);}
+  .g-actions{display:flex;gap:6px;align-items:center;}
+  .g-actions button{padding:6px 10px;font-size:11px;}
+
+  .qr-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    gap:14px;
+  }
+  .qr-cell{
+    background:#0d0f11;
+    border:1px dashed var(--line);
+    border-radius:8px;
+    padding:12px;
+    text-align:center;
+  }
+  .qr-cell canvas,.qr-cell img{width:100%;height:auto;border-radius:4px;background:#fff;padding:6px;}
+  .qr-cell .name{font-size:12px;margin-top:8px;font-family:'Space Grotesk',sans-serif;font-weight:600;}
+  .qr-cell .email{font-size:10px;color:#8a9198;margin-top:2px;word-break:break-all;}
+  .qr-cell .qr-btn-row{display:flex;gap:6px;margin-top:10px;}
+  .qr-cell .copy-btn{
+    flex:1;
+    min-width:0;
+    background:transparent;
+    color:var(--paper);
+    border:1px solid var(--line);
+    font-size:10.5px;
+    padding:6px 6px;
+  }
+  .qr-cell .copy-btn:hover{border-color:var(--amber);}
+  .qr-cell .copy-btn.copied{border-color:var(--go);color:var(--go);}
+
+  .error-box{
+    border:1px solid var(--stop);
+    background:rgba(214,69,69,0.08);
+    color:#ffb3b3;
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:13px;
+    margin-top:10px;
+  }
+  .spinner{
+    width:16px;height:16px;
+    border:2px solid var(--line);
+    border-top-color:var(--amber);
+    border-radius:50%;
+    display:inline-block;
+    animation:spin .7s linear infinite;
+    vertical-align:middle;
+    margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  @media print{
+    .qr-cell .copy-btn{display:none;}
+  }
+</style>
+
+<div id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="storage.js"></script>
+<script>
+(function(){
+  const app = document.getElementById('app');
+  const UNLOCK_KEY = 'checkin_admin_unlocked';
+
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ================= PASSWORD GATE =================
+  // Checked against a value stored in Firestore (checkin_kv/admin_password,
+  // field "value") rather than hardcoded here. Note this is a deterrent, not
+  // a hard lock: since the Firestore rules are currently wide open, someone
+  // technical enough to query Firestore directly could still read the
+  // password or the guest data without going through this form. It stops
+  // casual/accidental access, which is what this is for.
+  function renderPasswordGate(errorMsg){
+    app.innerHTML = `
+      <div class="admin" style="max-width:380px;padding-top:15vh;">
+        <div class="card">
+          <h2>Admin access</h2>
+          <p class="hint" style="margin-top:0;">Enter the admin password to continue.</p>
+          <input type="password" id="adminPassInput" class="search-input" placeholder="Password" autocomplete="current-password">
+          <div class="row">
+            <button class="primary" id="adminPassSubmit">Unlock</button>
+          </div>
+          ${errorMsg ? `<div class="error-box">${escapeHtml(errorMsg)}</div>` : ''}
+        </div>
+      </div>
+    `;
+    const input = document.getElementById('adminPassInput');
+    input.focus();
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') attemptUnlock(); });
+    document.getElementById('adminPassSubmit').onclick = attemptUnlock;
+  }
+
+  async function attemptUnlock(){
+    const submitBtn = document.getElementById('adminPassSubmit');
+    const input = document.getElementById('adminPassInput');
+    const entered = input.value;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Checking…';
+    try {
+      const rec = await window.storage.get('admin_password', true);
+      const expected = rec && rec.value ? rec.value : '';
+      if (!expected) {
+        renderPasswordGate('No admin password is set up yet. In the Firebase console → Firestore Database, add a document to the "checkin_kv" collection with ID "admin_password" and a field named "value" set to your chosen password.');
+        return;
+      }
+      if (entered && entered === expected) {
+        sessionStorage.setItem(UNLOCK_KEY, '1');
+        start();
+      } else {
+        renderPasswordGate('Incorrect password.');
+      }
+    } catch(e) {
+      console.error(e);
+      renderPasswordGate('Could not verify password — check your connection and try again.');
+    }
+  }
+
+  // ================= ADMIN CONSOLE =================
+  // QR codes point at scan.html (a separate file with no link back to this
+  // page) so door staff never see or land on an admin URL.
+  const scanBaseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'scan.html';
+
+  function uid(){
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g,'').slice(0,12);
+    return Math.random().toString(36).slice(2, 14);
+  }
+
+  async function loadRoster(){
+    try {
+      const r = await window.storage.get('roster', true);
+      return r && r.value ? JSON.parse(r.value) : [];
+    } catch(e){ return []; }
+  }
+
+  async function saveRoster(list){
+    await window.storage.set('roster', JSON.stringify(list), true);
+  }
+
+  // Pulls each guest's live checked-in status (as written by the scan page)
+  // and re-saves it into the roster doc, since scanning only updates the
+  // individual guest:<token> record, not the cached roster list.
+  async function syncCheckedInStatuses(){
+    const list = await loadRoster();
+    const results = await Promise.all(list.map(async (g) => {
+      try {
+        const r = await window.storage.get('guest:' + g.token, true);
+        const rec = r && r.value ? JSON.parse(r.value) : g;
+        return { name: g.name, email: g.email, token: g.token, checkedIn: !!rec.checkedIn, checkedInAt: rec.checkedInAt };
+      } catch(e) {
+        return g;
+      }
+    }));
+    await saveRoster(results);
+    return results;
+  }
+
+  function parseInput(text){
+    // Accept "Name" per line, or "Name, email".
+    return text.split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(l => {
+        const parts = l.split(',');
+        return { name: parts[0].trim(), email: (parts[1] || '').trim() };
+      });
+  }
+
+  async function renderAdmin(){
+    const roster = await loadRoster();
+    const checkedInCount = roster.filter(g => g.checkedIn).length;
+
+    app.innerHTML = `
+      <div class="admin">
+        <header>
+          <div class="eyebrow">Event Check-in · Admin Console</div>
+          <h1>Guest Check-in</h1>
+          <p class="sub">Import your roster once, send each guest their QR code, then hand door staff the scan page separately. Scanning a guest's code opens a full-screen pass / fail result. No login needed for staff.</p>
+        </header>
+
+        <div class="stat-grid">
+          <div class="stat"><div class="val">${roster.length}</div><div class="lbl">Imported</div></div>
+          <div class="stat go"><div class="val">${checkedInCount}</div><div class="lbl">Checked in</div></div>
+          <div class="stat pending"><div class="val">${roster.length - checkedInCount}</div><div class="lbl">Not yet arrived</div></div>
+        </div>
+
+        <div class="card">
+          <h2><span class="n">1</span> Import guest list</h2>
+          <p class="hint" style="margin-top:0;">Paste one guest name per line, or "Name, email" if you'd like an email attached. Importing again <b>adds to</b> the existing roster and won't erase guests already imported. If a name matches someone already on the roster, you'll be asked to add an email for both so they can be told apart. To remove guests instead, paste their name and/or email and use "Remove guest(s)". Their existing QR code will stop working.</p>
+          <textarea id="pasteArea" placeholder="Jane Doe&#10;John Smith&#10;Nailah Desclefs"></textarea>
+          <div class="row">
+            <button class="primary" id="importBtn">Import & generate QR codes</button>
+            <button class="ghost" id="removeBtn">Remove guest(s)</button>
+            <span id="importStatus" class="hint"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="n">2</span> Guest roster ${roster.length ? `<span style="color:#767c83;font-weight:400;font-size:12px;">(${roster.length})</span>` : ''}</h2>
+          ${roster.length === 0 ? '<p class="hint">No guests imported yet.</p>' : `
+            <input type="text" id="rosterSearch" class="search-input" placeholder="Search by name or email…" style="margin-bottom:12px;">
+            <div class="roster" id="rosterList">
+              ${roster.map(g => {
+                const isDup = roster.filter(x => x.name.trim().toLowerCase() === g.name.trim().toLowerCase()).length > 1;
+                const searchKey = (g.name + ' ' + (g.email || '')).toLowerCase();
+                return `
+                <div class="g-item" data-search="${escapeHtml(searchKey)}">
+                  <div>
+                    <div class="g-name">${escapeHtml(g.name)}</div>
+                    ${isDup ? `<div class="g-email">${g.email ? escapeHtml(g.email) : '<span style="color:var(--stop)">No email on file</span>'}</div>` : ''}
+                  </div>
+                  <div class="g-actions">
+                    <span class="g-status ${g.checkedIn ? 'done' : 'pending'}">${g.checkedIn ? 'Checked in' : 'Not arrived'}</span>
+                    <button class="ghost manual-btn" data-token="${escapeHtml(g.token)}">${g.checkedIn ? 'Undo' : 'Check in'}</button>
+                  </div>
+                </div>
+              `;}).join('')}
+              <p class="hint" id="noMatchHint" style="display:none;padding:12px 14px;margin:0;">No guests match that search.</p>
+            </div>
+          `}
+          <div class="row">
+            <button class="ghost" id="refreshBtn">Refresh status</button>
+            ${roster.length ? '<button class="ghost" id="resetBtn">Reset all check-ins</button>' : ''}
+          </div>
+        </div>
+
+        ${roster.length ? `
+        <div class="card">
+          <h2><span class="n">3</span> QR codes to send guests</h2>
+          <p class="hint" style="margin-top:0;">Each guest's code links to <code>${escapeHtml(scanBaseUrl)}?id=...</code> — a separate scan-only page with no link back here, so door staff never see this admin URL. Copy, download, or print these to send out. When a guest shows this at the door, staff scan it with their phone's camera app. No app install is required.</p>
+          <div class="row"><button class="primary" id="printBtn">Print all codes</button></div>
+          <div class="qr-grid" id="qrGrid" style="margin-top:16px;"></div>
+        </div>
+        ` : ''}
+
+        <div style="text-align:center;margin-top:36px;padding-top:20px;border-top:1px solid var(--line);">
+          <button class="ghost" id="lockBtn" style="padding:6px 12px;font-size:11px;margin-bottom:10px;">Lock admin console</button>
+          <br>
+          <span class="hint" style="font-size:11px;letter-spacing:0.04em;">Created by MCaldieraro</span>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('lockBtn').onclick = () => {
+      sessionStorage.removeItem(UNLOCK_KEY);
+      renderPasswordGate();
+    };
+
+    document.getElementById('importBtn').onclick = async () => {
+      const entries = parseInput(document.getElementById('pasteArea').value);
+      const statusEl = document.getElementById('importStatus');
+      if (entries.length === 0) { statusEl.textContent = 'Paste at least one name first.'; return; }
+
+      const existing = await loadRoster();
+      const existingNameCounts = {};
+      existing.forEach(g => {
+        const key = g.name.trim().toLowerCase();
+        existingNameCounts[key] = (existingNameCounts[key] || 0) + 1;
+      });
+      const batchNameCounts = {};
+      entries.forEach(e => {
+        const key = e.name.trim().toLowerCase();
+        batchNameCounts[key] = (batchNameCounts[key] || 0) + 1;
+      });
+      const missingEmail = entries.filter(e => {
+        const key = e.name.trim().toLowerCase();
+        const collides = !!existingNameCounts[key] || batchNameCounts[key] > 1;
+        return collides && !e.email;
+      });
+      if (missingEmail.length > 0) {
+        statusEl.innerHTML = '<span style="color:var(--stop)">Name already on the roster: '
+          + missingEmail.map(e => escapeHtml(e.name)).join(', ')
+          + '. Add "Name, email" for ' + (missingEmail.length === 1 ? 'this guest' : 'these guests') + ' so they can be told apart, then re-import.</span>';
+        return;
+      }
+
+      statusEl.innerHTML = '<span class="spinner"></span>Importing ' + entries.length + ' guests…';
+      const additions = [];
+      for (const { name, email } of entries) {
+        const token = uid();
+        const guestRecord = { name, email, checkedIn:false, checkedInAt:null };
+        try {
+          await window.storage.set('guest:' + token, JSON.stringify(guestRecord), true);
+          additions.push({ name, email, token, checkedIn:false });
+        } catch(e){ console.error('Failed to save guest', name, e); }
+      }
+      const updated = existing.concat(additions);
+      await saveRoster(updated);
+      statusEl.textContent = 'Imported ' + additions.length + ' guests.';
+      document.getElementById('pasteArea').value = '';
+      renderAdmin();
+    };
+
+    document.getElementById('removeBtn').onclick = async () => {
+      const entries = parseInput(document.getElementById('pasteArea').value);
+      const statusEl = document.getElementById('importStatus');
+      if (entries.length === 0) { statusEl.textContent = 'Paste at least one name or email first.'; return; }
+
+      // Each pasted line may give a name, an email, or "Name, email" — match
+      // a guest for removal if either identifier hits, so removal works
+      // whether you paste names or emails for telling duplicates apart.
+      const identifiers = new Set();
+      entries.forEach(e => {
+        if (e.name) identifiers.add(e.name.toLowerCase());
+        if (e.email) identifiers.add(e.email.toLowerCase());
+      });
+      const matches = g => identifiers.has(g.name.trim().toLowerCase()) || (!!g.email && identifiers.has(g.email.trim().toLowerCase()));
+
+      const existing = await loadRoster();
+      const toRemove = existing.filter(matches);
+      if (toRemove.length === 0) { statusEl.textContent = 'No matching guests found in the roster.'; return; }
+      if (!confirm('Remove ' + toRemove.length + ' guest' + (toRemove.length === 1 ? '' : 's') + ' from the roster? Their existing QR code will stop working.')) return;
+      statusEl.innerHTML = '<span class="spinner"></span>Removing ' + toRemove.length + ' guests…';
+      const remaining = existing.filter(g => !matches(g));
+      await Promise.all(toRemove.map(g => window.storage.set('guest:' + g.token, '', true)));
+      await saveRoster(remaining);
+      statusEl.textContent = 'Removed ' + toRemove.length + ' guest' + (toRemove.length === 1 ? '' : 's') + '.';
+      document.getElementById('pasteArea').value = '';
+      renderAdmin();
+    };
+
+    document.getElementById('refreshBtn').onclick = async () => {
+      await syncCheckedInStatuses();
+      renderAdmin();
+    };
+
+    const rosterSearchEl = document.getElementById('rosterSearch');
+    if (rosterSearchEl) {
+      rosterSearchEl.oninput = () => {
+        const term = rosterSearchEl.value.trim().toLowerCase();
+        const items = document.querySelectorAll('#rosterList .g-item');
+        let visibleCount = 0;
+        items.forEach(item => {
+          const match = !term || item.dataset.search.includes(term);
+          item.style.display = match ? '' : 'none';
+          if (match) visibleCount++;
+        });
+        const noMatchHint = document.getElementById('noMatchHint');
+        if (noMatchHint) noMatchHint.style.display = visibleCount === 0 ? '' : 'none';
+      };
+    }
+
+    // Manual check-in toggle — backup for when a guest's QR code won't scan.
+    document.querySelectorAll('.manual-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const token = btn.dataset.token;
+        const list = await loadRoster();
+        const guest = list.find(g => g.token === token);
+        if (!guest) return;
+        const newChecked = !guest.checkedIn;
+        const rec = { name: guest.name, email: guest.email, checkedIn: newChecked, checkedInAt: newChecked ? Date.now() : null };
+        const ok = await window.storage.set('guest:' + token, JSON.stringify(rec), true);
+        if (!ok) return;
+        const updated = list.map(g => g.token === token ? { ...g, checkedIn: newChecked } : g);
+        await saveRoster(updated);
+        const searchTerm = rosterSearchEl ? rosterSearchEl.value : '';
+        await renderAdmin();
+        const restoredSearchEl = document.getElementById('rosterSearch');
+        if (restoredSearchEl && searchTerm) {
+          restoredSearchEl.value = searchTerm;
+          restoredSearchEl.dispatchEvent(new Event('input'));
+        }
+      };
+    });
+
+    const resetBtnEl = document.getElementById('resetBtn');
+    if (resetBtnEl) {
+      resetBtnEl.onclick = async () => {
+        if (!confirm('Reset check-in status for all ' + roster.length + ' guests? This does not remove anyone from the roster.')) return;
+        const list = await loadRoster();
+        await Promise.all(list.map(g =>
+          window.storage.set('guest:' + g.token, JSON.stringify({ name:g.name, email:g.email, checkedIn:false, checkedInAt:null }), true)
+        ));
+        const cleared = list.map(g => ({ name:g.name, email:g.email, token:g.token, checkedIn:false }));
+        await saveRoster(cleared);
+        renderAdmin();
+      };
+    }
+
+    const printBtnEl = document.getElementById('printBtn');
+    if (printBtnEl) printBtnEl.onclick = () => window.print();
+
+    // Render QR codes after DOM is in place
+    const qrGrid = document.getElementById('qrGrid');
+    if (qrGrid) {
+      // Draws the QR + guest name (and email, when a name collides with
+      // another guest) into one flat PNG so copying/downloading sends a
+      // single self-contained image, not just the bare QR pattern.
+      function buildCompositeCanvas(sourceCanvas, name, email){
+        const padding = 16, qrSize = sourceCanvas.width, nameBandHeight = 34;
+        const emailBandHeight = email ? 20 : 0;
+        const out = document.createElement('canvas');
+        out.width = qrSize + padding * 2;
+        out.height = qrSize + padding * 2 + nameBandHeight + emailBandHeight;
+        const ctx = out.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, out.width, out.height);
+        ctx.drawImage(sourceCanvas, padding, padding, qrSize, qrSize);
+        ctx.fillStyle = '#0d0f11';
+        ctx.font = "600 16px 'Space Grotesk', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(name, out.width / 2, padding + qrSize + nameBandHeight / 2);
+        if (email) {
+          ctx.font = "500 12px 'IBM Plex Mono', monospace";
+          ctx.fillStyle = '#5b636b';
+          ctx.fillText(email, out.width / 2, padding + qrSize + nameBandHeight + emailBandHeight / 2);
+        }
+        return out;
+      }
+
+      function flashBtn(btn, label, isError){
+        const original = btn.dataset.label;
+        btn.textContent = label;
+        btn.classList.toggle('copied', !isError);
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1500);
+      }
+
+      const nameCounts = {};
+      roster.forEach(g => {
+        const key = g.name.trim().toLowerCase();
+        nameCounts[key] = (nameCounts[key] || 0) + 1;
+      });
+
+      roster.forEach(g => {
+        const link = scanBaseUrl + '?id=' + g.token;
+        const isDup = nameCounts[g.name.trim().toLowerCase()] > 1;
+        const displayEmail = g.email || (isDup ? '(no email on file)' : '');
+        const cell = document.createElement('div');
+        cell.className = 'qr-cell';
+        const canvasHolder = document.createElement('div');
+        cell.appendChild(canvasHolder);
+        const nameEl = document.createElement('div');
+        nameEl.className = 'name';
+        nameEl.textContent = g.name;
+        cell.appendChild(nameEl);
+        if (displayEmail) {
+          const emailEl = document.createElement('div');
+          emailEl.className = 'email';
+          emailEl.textContent = displayEmail;
+          cell.appendChild(emailEl);
+        }
+
+        const btnRow = document.createElement('div');
+        btnRow.className = 'qr-btn-row';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'ghost copy-btn';
+        copyBtn.type = 'button';
+        copyBtn.dataset.label = 'Copy image';
+        copyBtn.textContent = 'Copy image';
+        btnRow.appendChild(copyBtn);
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'ghost copy-btn';
+        downloadBtn.type = 'button';
+        downloadBtn.dataset.label = 'Download PNG';
+        downloadBtn.textContent = 'Download PNG';
+        btnRow.appendChild(downloadBtn);
+
+        cell.appendChild(btnRow);
+        qrGrid.appendChild(cell);
+
+        try {
+          new QRCode(canvasHolder, {
+            text: link,
+            width: 140,
+            height: 140,
+            colorDark: '#0d0f11',
+            colorLight: '#ffffff'
+          });
+        } catch(e){ canvasHolder.textContent = '(QR failed to render)'; return; }
+
+        const sourceCanvas = canvasHolder.querySelector('canvas');
+        if (!sourceCanvas) {
+          copyBtn.disabled = true;
+          downloadBtn.disabled = true;
+          return;
+        }
+
+        copyBtn.onclick = async () => {
+          try {
+            const composite = buildCompositeCanvas(sourceCanvas, g.name, displayEmail);
+            const blob = await new Promise(resolve => composite.toBlob(resolve, 'image/png'));
+            if (!blob) throw new Error('toBlob failed');
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            flashBtn(copyBtn, 'Copied!', false);
+          } catch(e) {
+            console.error('Copy image failed', e);
+            flashBtn(copyBtn, 'Copy failed', true);
+          }
+        };
+
+        downloadBtn.onclick = () => {
+          try {
+            const composite = buildCompositeCanvas(sourceCanvas, g.name, displayEmail);
+            const a = document.createElement('a');
+            a.href = composite.toDataURL('image/png');
+            a.download = (g.name || 'guest').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '_') + '_qr.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } catch(e) {
+            console.error('Download failed', e);
+            flashBtn(downloadBtn, 'Failed', true);
+          }
+        };
+      });
+    }
+  }
+
+  // Keep check-in status current without a manual click: scans from other
+  // devices only update the individual guest record, not this page's view,
+  // so re-sync whenever this tab regains focus, plus a light periodic poll
+  // while it stays open. In-progress typing in the paste/search boxes is
+  // preserved across the refresh so staff don't lose their place.
+  let autoRefreshInFlight = false;
+  let autoRefreshStarted = false;
+  async function autoRefresh(){
+    if (autoRefreshInFlight || sessionStorage.getItem(UNLOCK_KEY) !== '1') return;
+    autoRefreshInFlight = true;
+    try {
+      const pasteEl = document.getElementById('pasteArea');
+      const searchEl = document.getElementById('rosterSearch');
+      const pasteVal = pasteEl ? pasteEl.value : '';
+      const searchVal = searchEl ? searchEl.value : '';
+      await syncCheckedInStatuses();
+      await renderAdmin();
+      const newPasteEl = document.getElementById('pasteArea');
+      const newSearchEl = document.getElementById('rosterSearch');
+      if (newPasteEl && pasteVal) newPasteEl.value = pasteVal;
+      if (newSearchEl && searchVal) {
+        newSearchEl.value = searchVal;
+        newSearchEl.dispatchEvent(new Event('input'));
+      }
+    } finally {
+      autoRefreshInFlight = false;
+    }
+  }
+  function startAutoRefreshIfNeeded(){
+    if (autoRefreshStarted) return;
+    autoRefreshStarted = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') autoRefresh();
+    });
+    setInterval(autoRefresh, 20000);
+  }
+
+  async function start(){
+    if (sessionStorage.getItem(UNLOCK_KEY) === '1') {
+      await renderAdmin();
+      startAutoRefreshIfNeeded();
+    } else {
+      renderPasswordGate();
+    }
+  }
+
+  start();
+})();
+</script>
