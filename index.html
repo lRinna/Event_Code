@@ -98,6 +98,17 @@
     line-height:1.6;
   }
   textarea:focus{outline:1px solid var(--amber);}
+  .search-input{
+    width:100%;
+    background:#0d0f11;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:10px 14px;
+  }
+  .search-input:focus{outline:1px solid var(--amber);}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
   button{
     font-family:'IBM Plex Mono',monospace;
@@ -253,17 +264,6 @@
     margin:22px auto;
   }
   .scan.loading .ticket-edge{border-top-color:var(--line);}
-  .back-link{
-    margin-top:26px;
-    font-size:12px;
-    color:rgba(13,15,17,0.6);
-    text-decoration:underline;
-    cursor:pointer;
-    background:none;
-    border:none;
-    font-family:'IBM Plex Mono',monospace;
-  }
-  .scan.loading .back-link{color:#767c83;}
 
   @media print{
     .qr-cell .copy-btn{display:none;}
@@ -398,7 +398,6 @@
           ${guestName ? `<div class="guest">${escapeHtml(guestName)}</div>` : ''}
           <div class="ticket-edge"></div>
           <p class="meta">${escapeHtml(meta)}</p>
-          <button class="back-link" onclick="window.location.href = window.location.pathname">Open admin view</button>
         </div>
       `;
     }
@@ -467,20 +466,24 @@
         <div class="card">
           <h2><span class="n">2</span> Guest roster ${roster.length ? `<span style="color:#767c83;font-weight:400;font-size:12px;">(${roster.length})</span>` : ''}</h2>
           ${roster.length === 0 ? '<p class="hint">No guests imported yet.</p>' : `
-            <div class="roster">
+            <input type="text" id="rosterSearch" class="search-input" placeholder="Search by name or email…" style="margin-bottom:12px;">
+            <div class="roster" id="rosterList">
               ${roster.map(g => {
                 const isDup = roster.filter(x => x.name.trim().toLowerCase() === g.name.trim().toLowerCase()).length > 1;
+                const searchKey = (g.name + ' ' + (g.email || '')).toLowerCase();
                 return `
-                <div class="g-item">
+                <div class="g-item" data-search="${escapeHtml(searchKey)}">
                   <div>
                     <div class="g-name">${escapeHtml(g.name)}</div>
                     ${isDup ? `<div class="g-email">${g.email ? escapeHtml(g.email) : '<span style="color:var(--stop)">No email on file</span>'}</div>` : ''}
                   </div>
                   <div class="g-actions">
                     <span class="g-status ${g.checkedIn ? 'done' : 'pending'}">${g.checkedIn ? 'Checked in' : 'Not arrived'}</span>
+                    <button class="ghost manual-btn" data-token="${escapeHtml(g.token)}">${g.checkedIn ? 'Undo' : 'Check in'}</button>
                   </div>
                 </div>
               `;}).join('')}
+              <p class="hint" id="noMatchHint" style="display:none;padding:12px 14px;margin:0;">No guests match that search.</p>
             </div>
           `}
           <div class="row">
@@ -596,6 +599,45 @@
       await saveRoster(ordered);
       renderAdmin();
     };
+
+    const rosterSearchEl = document.getElementById('rosterSearch');
+    if (rosterSearchEl) {
+      rosterSearchEl.oninput = () => {
+        const term = rosterSearchEl.value.trim().toLowerCase();
+        const items = document.querySelectorAll('#rosterList .g-item');
+        let visibleCount = 0;
+        items.forEach(item => {
+          const match = !term || item.dataset.search.includes(term);
+          item.style.display = match ? '' : 'none';
+          if (match) visibleCount++;
+        });
+        const noMatchHint = document.getElementById('noMatchHint');
+        if (noMatchHint) noMatchHint.style.display = visibleCount === 0 ? '' : 'none';
+      };
+    }
+
+    // Manual check-in toggle — backup for when a guest's QR code won't scan.
+    document.querySelectorAll('.manual-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const token = btn.dataset.token;
+        const list = await loadRoster();
+        const guest = list.find(g => g.token === token);
+        if (!guest) return;
+        const newChecked = !guest.checkedIn;
+        const rec = { name: guest.name, email: guest.email, checkedIn: newChecked, checkedInAt: newChecked ? Date.now() : null };
+        const ok = await window.storage.set('guest:' + token, JSON.stringify(rec), true);
+        if (!ok) return;
+        const updated = list.map(g => g.token === token ? { ...g, checkedIn: newChecked } : g);
+        await saveRoster(updated);
+        const searchTerm = rosterSearchEl ? rosterSearchEl.value : '';
+        await renderAdmin();
+        const restoredSearchEl = document.getElementById('rosterSearch');
+        if (restoredSearchEl && searchTerm) {
+          restoredSearchEl.value = searchTerm;
+          restoredSearchEl.dispatchEvent(new Event('input'));
+        }
+      };
+    });
 
     const resetBtnEl = document.getElementById('resetBtn');
     if (resetBtnEl) {
